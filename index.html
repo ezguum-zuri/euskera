@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Euskera">
+<meta name="theme-color" content="#0f5b3a">
+<title>Euskera · Repaso diario</title>
+<style>
+:root{--bg:#f5f2ea;--card:#fff;--ink:#1d2420;--mut:#6c7670;--line:#e6e1d6;--acc:#0f7a4a;--acc2:#d6342c;--soft:#e5f3ec;--bad:#fbe7e5;--r:18px}
+@media(prefers-color-scheme:dark){:root{--bg:#111613;--card:#1b221e;--ink:#eef3f0;--mut:#93a29a;--line:#2b3430;--acc:#35c27f;--acc2:#ff6a5f;--soft:#163226;--bad:#3a1d1b}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:26px;margin:8px 0 2px}h2{font-size:19px;margin:0 0 10px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin:12px 0}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-weight:700;background:var(--acc);color:#fff;cursor:pointer;margin-top:10px;text-align:center}
+.btn.ghost{background:transparent;color:var(--acc);border:1.5px solid var(--acc)}
+.btn.red{background:var(--acc2)}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.stats{display:flex;gap:8px;margin-top:6px}.stat{flex:1;background:var(--soft);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--mut)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.icon{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer}
+.lesson{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.lesson:first-child{border-top:0}
+.num{min-width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:var(--soft);color:var(--acc)}
+.lesson.lock{opacity:.4;cursor:default}.lesson .t{flex:1}.lesson small{display:block;color:var(--mut)}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 14px}.bar i{display:block;height:100%;background:var(--acc);transition:width .3s}
+.q{font-size:14px;color:var(--mut);margin-bottom:6px}
+.prompt{font-size:28px;font-weight:800;margin:4px 0 4px;word-break:break-word}
+.hint{color:var(--mut);font-size:14px;min-height:20px}
+.opt{display:block;width:100%;text-align:left;padding:14px 16px;margin:8px 0;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.opt.ok{border-color:var(--acc);background:var(--soft)}.opt.ko{border-color:var(--acc2);background:var(--bad)}
+input[type=text],textarea{width:100%;font:inherit;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+textarea{min-height:140px;font-size:15px}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;min-height:52px;padding:8px;border-radius:14px;border:1.5px dashed var(--line);margin:10px 0}
+.tile{padding:9px 13px;border-radius:12px;background:var(--soft);border:1px solid var(--line);font:inherit;color:var(--ink);cursor:pointer}
+.fb{border-radius:14px;padding:12px 14px;margin-top:12px;font-size:15px}
+.fb.ok{background:var(--soft)}.fb.ko{background:var(--bad)}
+.voc{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.voc:first-of-type{border-top:0}.voc .eu{font-weight:700}.voc .p{color:var(--mut);font-size:13px}
+.hidden{display:none!important}
+.chip{display:inline-block;font-size:12px;padding:3px 8px;border-radius:20px;background:var(--soft);color:var(--acc);font-weight:700}
+.speak{border:0;background:none;font-size:20px;cursor:pointer;padding:0 4px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+// ===== TEMARIO (sigue el plan de 12 semanas de la tarea programada) =====
+// Formato: "euskera|castellano" separado por ";"  ·  frases igual
+const W=[
+ {t:"Saludos y presentaciones",l:[
+  ["Saludos básicos","kaixo|hola;egun on|buenos días;arratsalde on|buenas tardes;gabon|buenas noches;agur|adiós;eskerrik asko|muchas gracias;mesedez|por favor;bai|sí;ez|no;ez horregatik|de nada","Egun on, zer moduz?|Buenos días, ¿qué tal?;Ondo, eskerrik asko|Bien, muchas gracias;Agur, bihar arte|Adiós, hasta mañana"],
+  ["Presentarse","nor zara?|¿quién eres?;ni Esteban naiz|yo soy Esteban;nola duzu izena?|¿cómo te llamas?;izena|nombre;ni|yo;zu|tú;pozten naiz|encantado / me alegro;Esteban deitzen naiz|me llamo Esteban;hau|este / esto","Ni Esteban naiz|Yo soy Esteban;Nola duzu izena?|¿Cómo te llamas?;Pozten naiz zu ezagutzeaz|Encantado de conocerte"],
+  ["¿Qué tal estás?","zer moduz?|¿qué tal?;ondo|bien;oso ondo|muy bien;gaizki|mal;hala moduz|regular;eta zu?|¿y tú?;nekatuta|cansado;pozik|contento;lasai|tranquilo","Oso ondo, eta zu?|Muy bien, ¿y tú?;Gaur nekatuta nago|Hoy estoy cansado;Pozik nago|Estoy contento"],
+  ["De dónde eres y despedidas","nongoa zara?|¿de dónde eres?;Bilbokoa naiz|soy de Bilbao;non bizi zara?|¿dónde vives?;Bilbon bizi naiz|vivo en Bilbao;lankidea|compañero de trabajo;gero arte|hasta luego;laster arte|hasta pronto;bihar arte|hasta mañana;ikusi arte|hasta la vista","Ni Bilbokoa naiz|Yo soy de Bilbao;Non bizi zara?|¿Dónde vives?;Gero arte, lankidea|Hasta luego, compañero"]]},
+ {t:"Números, la hora y los días",l:[
+  ["Números 1-10","bat|uno;bi|dos;hiru|tres;lau|cuatro;bost|cinco;sei|seis;zazpi|siete;zortzi|ocho;bederatzi|nueve;hamar|diez","Bi kafe, mesedez|Dos cafés, por favor;Hiru kutxa dira|Son tres cajas"],
+  ["Números 11-20","hamaika|once;hamabi|doce;hamahiru|trece;hamalau|catorce;hamabost|quince;hamasei|dieciséis;hamazazpi|diecisiete;hemezortzi|dieciocho;hemeretzi|diecinueve;hogei|veinte","Hogei euro dira|Son veinte euros;Hamabost minutu|Quince minutos"],
+  ["La hora","zer ordu da?|¿qué hora es?;ordu bata da|es la una;ordu biak dira|son las dos;eta erdi|y media;eta laurden|y cuarto;laurden gutxi|menos cuarto;goiza|mañana (parte del día);arratsaldea|tarde;gaua|noche;ordua|hora","Zer ordu da?|¿Qué hora es?;Zazpiak eta erdi dira|Son las siete y media"],
+  ["Días de la semana","astelehena|lunes;asteartea|martes;asteazkena|miércoles;osteguna|jueves;ostirala|viernes;larunbata|sábado;igandea|domingo;gaur|hoy;bihar|mañana (día);atzo|ayer","Gaur osteguna da|Hoy es jueves;Bihar ostirala da|Mañana es viernes;Igandean mendira|El domingo al monte"]]},
+ {t:"La familia y la casa",l:[
+  ["La familia","ama|madre;aita|padre;alaba|hija;semea|hijo;anaia|hermano (de un chico);arreba|hermana (de un chico);emaztea|esposa;senarra|marido;gurasoak|padres;familia|familia","Hau nire alaba da|Esta es mi hija;Nire anaia Bilbon bizi da|Mi hermano vive en Bilbao"],
+  ["Más familia","aitona|abuelo;amona|abuela;osaba|tío;izeba|tía;lehengusua|primo;iloba|sobrino / nieto;umea|niño;lagunak|amigos","Amona etxean dago|La abuela está en casa;Aitona eta amona|El abuelo y la abuela"],
+  ["Las partes de la casa","etxea|casa;sukaldea|cocina;egongela|salón;logela|dormitorio;komuna|baño;atea|puerta;leihoa|ventana;gela|habitación;eskailerak|escaleras;lorategia|jardín","Sukaldean nago|Estoy en la cocina;Itxi atea, mesedez|Cierra la puerta, por favor"],
+  ["Cosas de casa","mahaia|mesa;aulkia|silla;ohea|cama;sofa|sofá;telebista|televisión;hozkailua|nevera;garbigailua|lavadora;giltza|llave;argia|luz;armairua|armario","Non dago giltza?|¿Dónde está la llave?;Itzali argia|Apaga la luz"]]},
+ {t:"Comida, cocina y la compra",l:[
+  ["Alimentos básicos","ogia|pan;ura|agua;esnea|leche;kafea|café;ardoa|vino;garagardoa|cerveza;gazta|queso;arrautza|huevo;fruta|fruta;sagarra|manzana","Ura, mesedez|Agua, por favor;Ogia eta gazta|Pan y queso"],
+  ["En la cocina","haragia|carne;arraina|pescado;oilaskoa|pollo;barazkiak|verduras;patata|patata;tomatea|tomate;arroza|arroz;olioa|aceite;gatza|sal;azukrea|azúcar","Gaur arraina jango dugu|Hoy comeremos pescado;Gatz pixka bat|Un poco de sal"],
+  ["De compras","denda|tienda;dendan|en la tienda;zenbat da?|¿cuánto es?;euroa|euro;merkea|barato;garestia|caro;txartela|tarjeta / billete;dirua|dinero;poltsa|bolsa;erosi|comprar","Zenbat da?|¿Cuánto es?;Txartelarekin, mesedez|Con tarjeta, por favor;Oso garestia da|Es muy caro"],
+  ["Las comidas del día","gosaria|desayuno;bazkaria|comida;afaria|cena;sukaldatu|cocinar;goxoa|rico;gose naiz|tengo hambre;egarri naiz|tengo sed;on egin!|¡que aproveche!;platera|plato;edalontzia|vaso","Gose naiz|Tengo hambre;Afaria prest dago|La cena está lista;On egin!|¡Que aproveche!"]]},
+ {t:"El verbo izan y adjetivos",l:[
+  ["Verbo izan (ser)","ni naiz|yo soy;zu zara|tú eres;hura da|él / ella es;gu gara|nosotros somos;zuek zarete|vosotros sois;haiek dira|ellos son;hori|eso;hau|esto","Ni Esteban naiz|Yo soy Esteban;Gu Bilbokoak gara|Nosotros somos de Bilbao;Haiek lankideak dira|Ellos son compañeros"],
+  ["Adjetivos (1)","handia|grande;txikia|pequeño;berria|nuevo;zaharra|viejo;ona|bueno;txarra|malo;polita|bonito;itsusia|feo;luzea|largo;motza|corto","Etxea handia da|La casa es grande;Kamioia berria da|El camión es nuevo"],
+  ["Adjetivos de personas","altua|alto;baxua|bajo;gaztea|joven;azkarra|listo / rápido;alferra|vago;langilea|trabajador;jatorra|majo;lotsatia|tímido;alaia|alegre;serioa|serio","Nire alaba alaia da|Mi hija es alegre;Zu oso jatorra zara|Tú eres muy majo"],
+  ["Adjetivos (2)","beroa|caliente;hotza|frío;erraza|fácil;zaila|difícil;garbia|limpio;zikina|sucio;betea|lleno;hutsa|vacío","Euskara ez da zaila|El euskera no es difícil;Kutxa hutsa da|La caja está vacía;Kafea beroa da|El café está caliente"]]},
+ {t:"El trabajo y el almacén",l:[
+  ["En el trabajo","lana|trabajo;biltegia|almacén;kutxa|caja;kamioia|camión;bidalketa|envío;enpresa|empresa;bulegoa|oficina;nagusia|jefe;ordutegia|horario","Biltegian lan egiten dut|Trabajo en el almacén;Kamioia iritsi da|Ha llegado el camión"],
+  ["Material del almacén","paleta|palé;apala|estantería;eskaera|pedido;albarana|albarán;pisua|peso;kiloa|kilo;paketea|paquete;etiketa|etiqueta;inbentarioa|inventario;materiala|material","Eskaera prest dago|El pedido está listo;Zenbat kilo?|¿Cuántos kilos?"],
+  ["En la oficina","bilera|reunión;ordenagailua|ordenador;posta elektronikoa|correo electrónico;telefonoa|teléfono;deia|llamada;sinadura|firma;data|fecha;prest|listo;berandu|tarde (con retraso);garaiz|a tiempo","Bilera hamarretan da|La reunión es a las diez;Bidalketa garaiz iritsi da|El envío ha llegado a tiempo"],
+  ["Verbos del almacén","jaso|recibir;bidali|enviar;kargatu|cargar;deskargatu|descargar;zenbatu|contar;bilatu|buscar;gorde|guardar;itxi|cerrar;ireki|abrir;lagundu|ayudar","Kutxak deskargatu behar ditugu|Tenemos que descargar las cajas;Lagundu, mesedez|Ayuda, por favor"]]},
+ {t:"Colores, ropa y el tiempo",l:[
+  ["Colores","gorria|rojo;urdina|azul;berdea|verde;horia|amarillo;beltza|negro;zuria|blanco;arrosa|rosa;laranja|naranja;morea|morado;grisa|gris","Kutxa gorria|La caja roja;Etxe zuria|La casa blanca"],
+  ["La ropa","arropa|ropa;alkandora|camisa;kamiseta|camiseta;galtzak|pantalones;jertsea|jersey;berokia|abrigo;zapatak|zapatos;galtzerdiak|calcetines;txapela|boina;eskularruak|guantes","Berokia hartu!|¡Coge el abrigo!;Kamiseta urdina|La camiseta azul"],
+  ["El tiempo","eguraldia|el tiempo (clima);euria|lluvia;eguzkia|sol;haizea|viento;elurra|nieve;lainoa|niebla;hodeia|nube;ekaitza|tormenta;aterkia|paraguas;zirimiria|sirimiri, llovizna","Gaur zirimiria dago|Hoy hay sirimiri;Aterkia behar dut|Necesito el paraguas"],
+  ["Frío, calor y estaciones","hotz egiten du|hace frío;bero egiten du|hace calor;euria ari du|está lloviendo;eguzkia dago|hace sol;eguraldi ona|buen tiempo;eguraldi txarra|mal tiempo;negua|invierno;uda|verano;udaberria|primavera;udazkena|otoño","Gaur hotz egiten du|Hoy hace frío;Euria ari du|Está lloviendo"]]},
+ {t:"Verbo ukan, tengo y quiero",l:[
+  ["Verbo ukan (tener)","nik dut|yo tengo (lo);zuk duzu|tú tienes;hark du|él / ella tiene;guk dugu|nosotros tenemos;zuek duzue|vosotros tenéis;haiek dute|ellos tienen;ez dut|no tengo;baduzu?|¿tienes?","Alaba bat dut|Tengo una hija;Autoa baduzu?|¿Tienes coche?"],
+  ["Querer y necesitar","nahi dut|quiero;nahi duzu?|¿quieres?;ez dut nahi|no quiero;behar dut|necesito;gustatzen zait|me gusta;ez zait gustatzen|no me gusta;maite dut|lo quiero (cariño);ezagutzen dut|lo conozco","Kafe bat nahi dut|Quiero un café;Mendia gustatzen zait|Me gusta el monte"],
+  ["Cantidades","denbora|tiempo (duración);pixka bat|un poco;asko|mucho;gutxi|poco;dena|todo;beste bat|otro;gehiago|más;ezer ez|nada","Ez dut denborarik|No tengo tiempo;Beste bat, mesedez|Otro, por favor;Ur pixka bat nahi dut|Quiero un poco de agua"],
+  ["Verbos útiles","egin|hacer;ikusi|ver;jan|comer;edan|beber;irakurri|leer;idatzi|escribir;ikasi|aprender / estudiar;entzun|escuchar;ulertu|entender","Ez dut ulertzen|No lo entiendo;Euskara ikasten ari naiz|Estoy aprendiendo euskera"]]},
+ {t:"El monte y la naturaleza",l:[
+  ["El monte","mendia|monte;bidea|camino;ibaia|río;tontorra|cima;basoa|bosque;zuhaitza|árbol;harria|piedra;iturria|fuente;belardia|prado;itsasoa|mar","Tontorrera igo naiz|He subido a la cima;Bidea luzea da|El camino es largo"],
+  ["Por el monte","igo|subir;jaitsi|bajar;korrika egin|correr;ibili|andar;aldapa|cuesta;lokatza|barro;bidegurutzea|cruce;zubia|puente;haitzuloa|cueva;mendilerroa|cordillera","Aldapa gogorra da|La cuesta es dura;Lokatz asko dago|Hay mucho barro"],
+  ["Animales","behia|vaca;ardia|oveja;zaldia|caballo;txakurra|perro;katua|gato;txoria|pájaro;arranoa|águila;basurdea|jabalí;astoa|burro;ahuntza|cabra","Begira, behi bat!|¡Mira, una vaca!;Txakurra gurekin dator|El perro viene con nosotros"],
+  ["Trail running","lasterketa|carrera;korrikalaria|corredor;entrenamendua|entrenamiento;irteera|salida;helmuga|meta;kilometroa|kilómetro;abiadura|velocidad;hanka|pierna;bihotza|corazón;motxila|mochila","Helmugara iritsi naiz!|¡He llegado a la meta!;Gaur entrenamendua dut|Hoy tengo entrenamiento"]]},
+ {t:"Moverse por la ciudad",l:[
+  ["Direcciones","non dago?|¿dónde está?;eskuinera|a la derecha;ezkerrera|a la izquierda;zuzen|recto;hemen|aquí;hor|ahí;han|allí;gertu|cerca;urrun|lejos;kalea|calle","Non dago metroa?|¿Dónde está el metro?;Gertu dago|Está cerca"],
+  ["Transporte","autobusa|autobús;metroa|metro;trena|tren;tranbia|tranvía;geltokia|estación / parada;autoa|coche;bizikleta|bicicleta;taxia|taxi;aparkalekua|aparcamiento","Metroz noa|Voy en metro;Autobusa berandu dator|El autobús viene tarde"],
+  ["Lugares de la ciudad","hiria|ciudad;auzoa|barrio;merkatua|mercado;ospitalea|hospital;eskola|escuela;liburutegia|biblioteca;farmazia|farmacia;banketxea|banco;udaletxea|ayuntamiento;ibaiertza|ribera","Merkatua ibaiertzean dago|El mercado está en la ribera;Farmazia non dago?|¿Dónde está la farmacia?"],
+  ["Pedir indicaciones","barkatu|perdona;joan|ir;etorri|venir;gelditu|parar;itzuli|volver;hurrengoa|el siguiente;lehenengoa|el primero;azkena|el último;ondoan|al lado;aurrean|delante","Barkatu, non dago geltokia?|Perdona, ¿dónde está la estación?;Zuzen joan eta gero eskuinera|Sigue recto y luego a la derecha"]]},
+ {t:"El pasado: lo que hice ayer",l:[
+  ["Fui, estuve, vine","joan nintzen|fui;etorri nintzen|vine;egon nintzen|estuve;atzo goizean|ayer por la mañana;iaz|el año pasado;lehen|antes;joan den astean|la semana pasada;herenegun|anteayer","Atzo mendira joan nintzen|Ayer fui al monte;Etxean egon nintzen|Estuve en casa"],
+  ["Hice, vi, comí","egin nuen|hice;ikusi nuen|vi;jan nuen|comí;edan nuen|bebí;erosi nuen|compré;irakurri nuen|leí;ikasi nuen|aprendí;idatzi nuen|escribí","Atzo arraina jan nuen|Ayer comí pescado;Film bat ikusi nuen|Vi una película"],
+  ["Tú, él, nosotros","joan zinen|fuiste;egin zenuen|hiciste;joan zen|fue (él/ella);egin zuen|hizo;joan ginen|fuimos;egin genuen|hicimos;zer egin zenuen?|¿qué hiciste?;non egon zinen?|¿dónde estuviste?","Zer egin zenuen atzo?|¿Qué hiciste ayer?;Iaz Donostiara joan ginen|El año pasado fuimos a Donostia"],
+  ["Fin de semana y viajes","asteburua|fin de semana;oporrak|vacaciones;bidaia|viaje;festa|fiesta;urtebetetzea|cumpleaños;hondartza|playa;asteburuan|el fin de semana","Asteburuan mendira joan nintzen|El fin de semana fui al monte;Zer egin zenuen oporretan?|¿Qué hiciste en vacaciones?"]]},
+ {t:"Conversaciones del día a día",l:[
+  ["En el bar","kafe hutsa|café solo;kafe esnea|café con leche;ebakia|cortado;pintxoa|pintxo;kontua|la cuenta;ardo beltza|vino tinto;zuritoa|zurito;freskagarria|refresco","Kafe ebaki bat, mesedez|Un cortado, por favor;Kontua, mesedez|La cuenta, por favor"],
+  ["En el médico","medikua|médico;mina|dolor;buruko mina|dolor de cabeza;sukarra|fiebre;gaixorik|enfermo;botika|medicina;osasun etxea|centro de salud;hitzordua|cita;eztarria|garganta","Non duzu mina?|¿Dónde te duele?;Buruko mina dut|Me duele la cabeza;Hitzordua nahi dut|Quiero una cita"],
+  ["En el colegio","ikastola|ikastola (escuela);irakaslea|profesor;ikaslea|alumno;etxeko lanak|deberes;jolastokia|patio;liburua|libro;ikasgela|aula;klasea|clase","Zer moduz eskolan?|¿Qué tal en el cole?;Etxeko lanak egin dituzu?|¿Has hecho los deberes?"],
+  ["Quedar con amigos","geratu|quedar;noiz?|¿cuándo?;non?|¿dónde?;zer ordutan?|¿a qué hora?;gaur arratsaldean|esta tarde;ados|de acuerdo;ezin dut|no puedo;primeran|genial;ondo pasatu!|¡pásalo bien!","Zer ordutan geratuko gara?|¿A qué hora quedamos?;Ados, gero arte!|¡De acuerdo, hasta luego!"]]}
+];
+const START=new Date(2026,10,16); // lunes 16/11/2026 = lección 1
+
+// ===== Datos derivados =====
+const LESSONS=[]; // index = número de lección
+W.forEach((w,wi)=>{for(let d=0;d<5;d++){const n=wi*5+d+1;
+  if(d<4){const [title,v,f]=w.l[d];LESSONS[n]={n,week:wi+1,title,topic:w.t,review:false,
+    words:v.split(";").map(p=>{const[eu,es]=p.split("|");return{eu,es,k:"w:"+eu,n}}),
+    phrases:(f||"").split(";").filter(Boolean).map(p=>{const[eu,es]=p.split("|");return{eu,es,k:"f:"+eu,n,ph:1}})}}
+  else LESSONS[n]={n,week:wi+1,title:"Repaso de la semana",topic:w.t,review:true,words:[],phrases:[]}}});
+const TOTAL=LESSONS.length-1;
+
+// ===== Estado (guardado en este móvil) =====
+const store={get(k,d){try{const v=localStorage.getItem("eus_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("eus_"+k,JSON.stringify(v))}catch(e){}}};
+let S=store.get("stats",{}); // k -> {ok,ko,last}
+let offset=store.get("offset",0);
+let mine=store.get("mine","");
+let streak=store.get("streak",{d:"",n:0});
+let best=store.get("totalq",0);
+
+function workdaysSinceStart(){const t=new Date();t.setHours(0,0,0,0);let c=0;const d=new Date(START);
+  while(d<=t){const w=d.getDay();if(w>0&&w<6)c++;d.setDate(d.getDate()+1)}return c}
+function curLesson(){let n=workdaysSinceStart()+offset;return Math.max(1,n)}
+function unlocked(n){return n<=curLesson()}
+function lessonOf(n){return LESSONS[((n-1)%TOTAL)+1]}
+function myItems(){return mine.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.split(/\s*[=|:–—]\s*|\s+-\s+/);return m.length>=2?{eu:m[0].trim(),es:m.slice(1).join(" ").trim(),k:"m:"+m[0].trim(),n:0,mine:1}:null}).filter(Boolean)}
+function poolUpTo(n){const p=[];for(let i=1;i<=Math.min(n,TOTAL);i++)p.push(...LESSONS[i].words,...LESSONS[i].phrases);return p.concat(myItems())}
+function allWords(){const p=[];for(let i=1;i<=TOTAL;i++)p.push(...LESSONS[i].words);return p}
+
+// Pista de pronunciación automática para hispanohablantes
+function pron(s){let x=s.toLowerCase();
+  const r=[[/tx/g,"CH"],[/tz/g,"TS"],[/ts/g,"TS"],[/x/g,"SH"],[/ll/g,"LL"],[/z/g,"s"],[/h/g,""],[/j/g,"y"]];
+  let out=x;r.forEach(([a,b])=>out=out.replace(a,b));return out.toLowerCase()}
+function hasTricky(s){return /tx|tz|ts|x|z|h|j/i.test(s)}
+function tips(s){const t=[];if(/tx/i.test(s))t.push("tx = ch");if(/tz/i.test(s))t.push("tz = ts fuerte");if(/ts/i.test(s))t.push("ts = ts suave");if(/x/i.test(s.replace(/tx/gi,"")))t.push("x = sh");if(/z/i.test(s.replace(/tz/gi,"")))t.push("z = s suave");if(/h/i.test(s))t.push("h muda");if(/j/i.test(s))t.push("j ≈ y");return t.join(" · ")}
+
+// Voz (si el iPhone tiene voz en euskera)
+let euVoice=null;function loadVoice(){try{const v=speechSynthesis.getVoices();euVoice=v.find(x=>/^eu/i.test(x.lang))||null}catch(e){}}
+try{loadVoice();speechSynthesis.onvoiceschanged=loadVoice}catch(e){}
+function say(t){try{if(!euVoice)return;const u=new SpeechSynthesisUtterance(t);u.voice=euVoice;u.lang=euVoice.lang;u.rate=.85;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function spk(t){return euVoice?`<button class="speak" onclick="say(${JSON.stringify(t).replace(/"/g,'&quot;')})">🔊</button>`:""}
+
+const $=s=>document.querySelector(s);const app=$("#app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[¿?¡!.,;:()]/g,"").replace(/\s+/g," ").trim();
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+function today(){const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+
+// ===== Pantalla de inicio =====
+function home(){
+  const c=curLesson(),L=lessonOf(c);
+  const pool=poolUpTo(c);const learned=pool.filter(i=>(S[i.k]||{}).ok>0).length;
+  const hard=pool.filter(i=>{const s=S[i.k];return s&&s.ko>s.ok}).length;
+  const st=streak.d===today()||isYesterday(streak.d)?streak.n:0;
+  let list="";for(let n=1;n<=TOTAL;n++){const l=LESSONS[n],u=unlocked(n);
+    if(l.n%5===1)list+=`<div class="q" style="margin-top:12px">Semana ${l.week} · ${esc(l.topic)}</div>`;
+    list+=`<div class="lesson ${u?"":"lock"}" ${u?`onclick="openLesson(${n})"`:""}><div class="num">${n}</div><div class="t">${esc(l.title)}<small>${l.review?"Repaso de lo visto en la semana":l.words.length+" palabras · "+l.phrases.length+" frases"}</small></div>${n===c?'<span class="chip">HOY</span>':u?"":"🔒"}</div>`}
+  app.innerHTML=`
+  <div class="top"><div><h1>Euskera</h1><p class="sub">Lección ${c} · Semana ${L.week} · ${esc(L.review?"Repaso":L.title)}</p></div><button class="icon" onclick="settings()">⚙️</button></div>
+  <div class="card"><h2>Repaso de hoy</h2>
+   <p class="sub" style="margin:0">10 preguntas de todo lo que llevas, con más peso en lo de hoy y en lo que fallas.</p>
+   <button class="btn" onclick="startQuiz('mix')">▶︎ Empezar (≈3 min)</button>
+   <div class="row"><button class="btn ghost" onclick="startQuiz('today')">Solo lo de hoy</button><button class="btn ghost" ${hard?"":"disabled"} onclick="startQuiz('hard')">Difíciles (${hard})</button></div>
+   <div class="stats"><div class="stat"><b>${learned}/${pool.length}</b><span>acertadas</span></div><div class="stat"><b>${st}🔥</b><span>días seguidos</span></div><div class="stat"><b>${best}</b><span>respuestas</span></div></div>
+  </div>
+  <div class="card"><h2>Lecciones</h2>${list}</div>`;
+}
+function isYesterday(d){const y=new Date();y.setDate(y.getDate()-1);return d===(y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate())}
+
+// ===== Ver una lección =====
+function openLesson(n){const l=LESSONS[n];
+  let items=l.review?poolWeek(l.week):l.words.concat(l.phrases);
+  app.innerHTML=`<div class="top"><button class="icon" onclick="home()">←</button><div style="flex:1"><h1 style="font-size:22px">Lección ${n}</h1><p class="sub" style="margin:0">${esc(l.title)} · ${esc(l.topic)}</p></div></div>
+  <button class="btn" onclick="startQuiz('lesson',${n})">▶︎ Preguntas de esta lección</button>
+  <div class="card">${l.review?'<p class="sub">Repaso: todo lo de la semana '+l.week+'.</p>':""}${items.map(i=>`<div class="voc"><div><div class="eu">${esc(i.eu)} ${spk(i.eu)}</div>${hasTricky(i.eu)?`<div class="p">${esc(tips(i.eu))}</div>`:""}</div><div style="text-align:right">${esc(i.es)}</div></div>`).join("")}</div>`;scrollTo(0,0)}
+function poolWeek(w){const p=[];for(let i=(w-1)*5+1;i<=w*5;i++)p.push(...LESSONS[i].words,...LESSONS[i].phrases);return p}
+
+// ===== Generador de preguntas =====
+let Q=[],qi=0,score=0,wrong=[],answered=false,curMode="mix",curArg=0;
+function weight(i,c){const s=S[i.k]||{ok:0,ko:0};let w=1+s.ko*2-Math.min(s.ok,4)*.2;if(!s.ok&&!s.ko)w+=1;if(i.n===c||i.n===c-1)w+=2;if(i.mine)w+=1;return Math.max(.3,w)}
+function pick(pool,k,c){const res=[];const p=pool.slice();while(res.length<k&&p.length){const tot=p.reduce((a,i)=>a+weight(i,c),0);let r=Math.random()*tot;let idx=0;for(;idx<p.length;idx++){r-=weight(p[idx],c);if(r<=0)break}res.push(p.splice(Math.min(idx,p.length-1),1)[0])}return res}
+function startQuiz(mode,arg){curMode=mode;curArg=arg;const c=curLesson();let pool;
+  if(mode==="today"){const l=lessonOf(c);pool=l.review?poolWeek(l.week):l.words.concat(l.phrases)}
+  else if(mode==="lesson"){const l=LESSONS[arg];pool=l.review?poolWeek(l.week):l.words.concat(l.phrases)}
+  else if(mode==="hard"){pool=poolUpTo(c).filter(i=>{const s=S[i.k];return s&&s.ko>s.ok})}
+  else if(mode==="retry"){pool=wrong.slice()}
+  else pool=poolUpTo(c);
+  if(!pool.length){home();return}
+  const items=mode==="retry"?shuffle(pool):pick(pool,Math.min(10,pool.length),c);
+  Q=items.map(makeQ);qi=0;score=0;wrong=[];showQ()}
+function distract(it,field,pool){const src=(it.ph?poolUpTo(TOTAL).filter(x=>x.ph):allWords().concat(myItems())).filter(x=>x[field]!==it[field]&&norm(x[field])!==norm(it[field]));
+  const near=src.filter(x=>Math.abs(x.n-it.n)<=2);const base=shuffle(near.length>=6?near:src);const out=[];for(const x of base){if(!out.some(o=>norm(o)===norm(x[field])))out.push(x[field]);if(out.length===3)break}return out}
+function makeQ(it){const s=S[it.k]||{ok:0};let type;
+  if(it.ph){type=Math.random()<.6&&it.eu.split(" ").length>=2?"build":"es2eu"}
+  else{const r=Math.random();type=s.ok>=2?(r<.5?"write":r<.75?"es2eu":"eu2es"):(r<.45?"eu2es":r<.8?"es2eu":"write")}
+  if(type==="eu2es")return{it,type,prompt:it.eu,ask:"¿Qué significa?",opts:shuffle([it.es,...distract(it,"es")]),ans:it.es};
+  if(type==="es2eu")return{it,type,prompt:it.es,ask:"¿Cómo se dice en euskera?",opts:shuffle([it.eu,...distract(it,"eu")]),ans:it.eu};
+  if(type==="write")return{it,type,prompt:it.es,ask:"Escríbelo en euskera",ans:it.eu};
+  const words=it.eu.replace(/[¿?¡!.,]/g,"").split(/\s+/);return{it,type,prompt:it.es,ask:"Ordena la frase en euskera",tiles:shuffle(words.map((w,i)=>({w,i}))),ans:words.join(" "),picked:[]}}
+
+function showQ(){answered=false;const q=Q[qi];const pct=qi/Q.length*100;
+  let body="";
+  if(q.opts)body=q.opts.map((o,i)=>`<button class="opt" data-i="${i}" onclick="choose(${i})">${esc(o)}</button>`).join("");
+  else if(q.type==="write")body=`<input type="text" id="w" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Escribe aquí…" onkeydown="if(event.key==='Enter')checkWrite()"><button class="btn" id="chk" onclick="checkWrite()">Comprobar</button><button class="btn ghost" onclick="reveal()">No lo sé</button>`;
+  else body=`<div class="tiles" id="ans"></div><div class="tiles" id="pool" style="border-style:solid"></div><button class="btn" id="chk" onclick="checkBuild()">Comprobar</button>`;
+  app.innerHTML=`<div class="top"><button class="icon" onclick="home()">✕</button><div style="flex:1;margin-left:8px"><div class="bar"><i style="width:${pct}%"></i></div></div><span class="chip">${qi+1}/${Q.length}</span></div>
+  <div class="card"><div class="q">${q.ask}${q.it.n?` · Lección ${q.it.n}`:" · Mis palabras"}</div><div class="prompt">${esc(q.prompt)} ${q.type==="eu2es"?spk(q.prompt):""}</div><div class="hint">${q.type==="eu2es"&&hasTricky(q.prompt)?esc(tips(q.prompt)):""}</div>${body}<div id="fb"></div></div>`;
+  if(q.type==="build")drawTiles();if(q.type==="write")setTimeout(()=>{const w=$("#w");w&&w.focus()},50)}
+function drawTiles(){const q=Q[qi];$("#ans").innerHTML=q.picked.map((t,i)=>`<button class="tile" onclick="unpick(${i})">${esc(t.w)}</button>`).join("");
+  $("#pool").innerHTML=q.tiles.filter(t=>!q.picked.includes(t)).map(t=>`<button class="tile" onclick="pickT(${t.i})">${esc(t.w)}</button>`).join("")}
+function pickT(i){if(answered)return;const q=Q[qi];q.picked.push(q.tiles.find(t=>t.i===i));drawTiles()}
+function unpick(i){if(answered)return;Q[qi].picked.splice(i,1);drawTiles()}
+function choose(i){if(answered)return;const q=Q[qi];const ok=q.opts[i]===q.ans;document.querySelectorAll(".opt").forEach((b,j)=>{if(q.opts[j]===q.ans)b.classList.add("ok");else if(j===i)b.classList.add("ko")});finish(ok)}
+function accepted(q){return q.ans.split("/").map(s=>norm(s))}
+function checkWrite(){if(answered)return;const v=norm($("#w").value);if(!v)return;const q=Q[qi];const ok=accepted(q).includes(v)||accepted(q).includes(norm(v.replace(/^(nik|zuk)\s/,"")));$("#w").disabled=true;finish(ok,v)}
+function reveal(){if(answered)return;$("#w").disabled=true;finish(false)}
+function checkBuild(){if(answered)return;const q=Q[qi];const v=q.picked.map(t=>t.w).join(" ");finish(norm(v)===norm(q.ans))}
+function finish(ok,typed){answered=true;const q=Q[qi],it=q.it;const s=S[it.k]||{ok:0,ko:0};ok?s.ok++:s.ko++;s.last=Date.now();S[it.k]=s;store.set("stats",S);
+  best++;store.set("totalq",best);
+  if(ok)score++;else wrong.push(it);
+  // racha
+  if(streak.d!==today()){streak={d:today(),n:isYesterday(streak.d)?streak.n+1:1};store.set("streak",streak)}
+  const almost=!ok&&typed&&lev(typed,norm(q.ans))<=1;
+  document.querySelectorAll("#chk").forEach(b=>b.remove());
+  $("#fb").innerHTML=`<div class="fb ${ok?"ok":"ko"}"><b>${ok?"Ondo! ✅":almost?"¡Casi! Revisa la letra ✍️":"Ez da hori ❌"}</b><br>${esc(it.eu)} ${spk(it.eu)} = ${esc(it.es)}${hasTricky(it.eu)?`<br><span style="color:var(--mut);font-size:13px">${esc(tips(it.eu))}</span>`:""}</div>
+   <button class="btn" onclick="next()">${qi+1<Q.length?"Siguiente →":"Ver resultado"}</button>`;
+  if(ok)say(it.eu)}
+function lev(a,b){const m=[];for(let i=0;i<=a.length;i++){m[i]=[i];for(let j=1;j<=b.length;j++)m[i][j]=i?Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1)):j}return m[a.length][b.length]}
+function next(){qi++;if(qi<Q.length)showQ();else result()}
+const MOT=[["Pixkanaka-pixkanaka","Poco a poco"],["Primeran!","¡Genial!"],["Aurrera!","¡Adelante!"],["Oso ondo, Esteban!","¡Muy bien, Esteban!"],["Ekinez egina","Haciendo se aprende"]];
+function result(){const pct=Math.round(score/Q.length*100);const m=MOT[Math.random()*MOT.length|0];
+  app.innerHTML=`<div class="card" style="text-align:center;margin-top:24px"><div style="font-size:54px">${pct===100?"🏆":pct>=70?"⭐":"📚"}</div><div class="prompt">${score}/${Q.length}</div><p class="sub" style="margin:4px 0 0"><b>${m[0]}</b> · ${m[1]}</p>
+  ${wrong.length?`<button class="btn red" onclick="startQuiz('retry')">Repetir las ${wrong.length} falladas</button>`:""}
+  <button class="btn" onclick="startQuiz('${curMode==="retry"?"mix":curMode}',${curArg||0})">Otra ronda</button><button class="btn ghost" onclick="home()">Inicio</button></div>
+  ${wrong.length?`<div class="card"><h2>Para repasar</h2>${wrong.map(i=>`<div class="voc"><div class="eu">${esc(i.eu)}</div><div>${esc(i.es)}</div></div>`).join("")}</div>`:""}`;scrollTo(0,0)}
+
+// ===== Ajustes =====
+function settings(){const auto=workdaysSinceStart();
+  app.innerHTML=`<div class="top"><button class="icon" onclick="home()">←</button><h1 style="flex:1;font-size:22px">Ajustes</h1></div>
+  <div class="card"><h2>¿Por qué lección vas?</h2><p class="sub">Se calcula sola por los días laborables desde el 16 de noviembre (hoy: lección ${auto}). Ajústala si te has saltado alguna o vas adelantado.</p>
+   <div class="row" style="align-items:center"><button class="btn ghost" onclick="adj(-1)">−</button><div style="text-align:center;font-size:26px;font-weight:800" id="cl">${curLesson()}</div><button class="btn ghost" onclick="adj(1)">+</button></div>
+   <button class="btn ghost" onclick="offset=0;store.set('offset',0);settings()">Volver a la automática</button></div>
+  <div class="card"><h2>Mis palabras</h2><p class="sub">Copia aquí palabras de tus lecciones de la mañana, una por línea: <b>euskera = castellano</b>. Entrarán en las preguntas.</p>
+   <textarea id="mine" placeholder="egun on = buenos días&#10;zer moduz? = ¿qué tal?">${esc(mine)}</textarea><button class="btn" onclick="saveMine()">Guardar</button><div id="ms" class="sub"></div></div>
+  <div class="card"><h2>Voz</h2><p class="sub">${euVoice?"Hay voz en euskera en este dispositivo: toca 🔊 para escuchar.":"Este dispositivo no tiene voz en euskera, así que no se muestran los botones 🔊. Usa las pistas de pronunciación."}</p></div>
+  <div class="card"><button class="btn red" onclick="if(this.dataset.c){S={};store.set('stats',S);streak={d:'',n:0};store.set('streak',streak);best=0;store.set('totalq',0);home()}else{this.dataset.c=1;this.textContent='Toca otra vez para borrar el progreso'}">Borrar progreso</button></div>`;scrollTo(0,0)}
+function adj(d){offset+=d;if(curLesson()<1)offset-=d;if(curLesson()>TOTAL*3)offset-=d;store.set("offset",offset);$("#cl").textContent=curLesson()}
+function saveMine(){mine=$("#mine").value;store.set("mine",mine);$("#ms").textContent=myItems().length+" palabras guardadas ✔︎"}
+
+home();
+</script>
+</body>
+</html>
