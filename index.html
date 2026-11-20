@@ -152,7 +152,8 @@ function hasTricky(s){return /tx|tz|ts|x|z|h|j/i.test(s)}
 function tips(s){const t=[];if(/tx/i.test(s))t.push("tx = ch");if(/tz/i.test(s))t.push("tz = ts fuerte");if(/ts/i.test(s))t.push("ts = ts suave");if(/x/i.test(s.replace(/tx/gi,"")))t.push("x = sh");if(/z/i.test(s.replace(/tz/gi,"")))t.push("z = s suave");if(/h/i.test(s))t.push("h muda");if(/j/i.test(s))t.push("j ≈ y");return t.join(" · ")}
 
 // Voz (si el iPhone tiene voz en euskera)
-let euVoice=null;function loadVoice(){try{const v=speechSynthesis.getVoices();euVoice=v.find(x=>/^eu/i.test(x.lang))||null}catch(e){}}
+let euVoice=null,esVoice=null;function loadVoice(){try{const v=speechSynthesis.getVoices();euVoice=v.find(x=>/^eu/i.test(x.lang))||null;
+  esVoice=v.find(x=>/^es[-_]ES/i.test(x.lang)&&/premium|enhanced|mejorad/i.test(x.name))||v.find(x=>/^es[-_]ES/i.test(x.lang)&&/m[oó]nica|marisol|paulina/i.test(x.name))||v.find(x=>/^es[-_]ES/i.test(x.lang))||v.find(x=>/^es/i.test(x.lang))||null}catch(e){}}
 try{loadVoice();speechSynthesis.onvoiceschanged=loadVoice}catch(e){}
 function say(t){try{if(!euVoice)return;const u=new SpeechSynthesisUtterance(t);u.voice=euVoice;u.lang=euVoice.lang;u.rate=.85;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function spk(t){return euVoice?`<button class="speak" onclick="say(${JSON.stringify(t).replace(/"/g,'&quot;')})">🔊</button>`:""}
@@ -177,6 +178,7 @@ function home(){
   <div class="card"><h2>Repaso de hoy</h2>
    <p class="sub" style="margin:0">10 preguntas de todo lo que llevas, con más peso en lo de hoy y en lo que fallas.</p>
    <button class="btn" onclick="startQuiz('mix')">▶︎ Empezar (≈3 min)</button>
+   <button class="btn ghost" onclick="carSetup()">🚗 Modo coche · manos libres</button>
    <div class="row"><button class="btn ghost" onclick="startQuiz('today')">Solo lo de hoy</button><button class="btn ghost" ${hard?"":"disabled"} onclick="startQuiz('hard')">Difíciles (${hard})</button></div>
    <div class="stats"><div class="stat"><b>${learned}/${pool.length}</b><span>acertadas</span></div><div class="stat"><b>${st}🔥</b><span>días seguidos</span></div><div class="stat"><b>${best}</b><span>respuestas</span></div></div>
   </div>
@@ -263,6 +265,82 @@ function settings(){const auto=workdaysSinceStart();
   <div class="card"><button class="btn red" onclick="if(this.dataset.c){S={};store.set('stats',S);streak={d:'',n:0};store.set('streak',streak);best=0;store.set('totalq',0);home()}else{this.dataset.c=1;this.textContent='Toca otra vez para borrar el progreso'}">Borrar progreso</button></div>`;scrollTo(0,0)}
 function adj(d){offset+=d;if(curLesson()<1)offset-=d;if(curLesson()>TOTAL*3)offset-=d;store.set("offset",offset);$("#cl").textContent=curLesson()}
 function saveMine(){mine=$("#mine").value;store.set("mine",mine);$("#ms").textContent=myItems().length+" palabras guardadas ✔︎"}
+
+// ===== MODO COCHE (manos libres) =====
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let car={on:false,run:0,items:[],i:0,ok:0,tried:0,timer:null,rec:null,wake:null};
+let carCfg=store.get("carcfg",{n:20,mic:false,slow:false,what:"mix"});
+function carPron(s){ // para que una voz en castellano lo lea parecido al euskera
+  return s.toLowerCase().replace(/tx/g,"ch").replace(/tz/g,"ts").replace(/x/g,"ch").replace(/z/g,"s").replace(/\?/g,"")}
+function talk(text,eu){return new Promise(res=>{try{
+  const u=new SpeechSynthesisUtterance(eu&&!euVoice?carPron(text):text);const v=eu&&euVoice?euVoice:esVoice;
+  if(v){u.voice=v;u.lang=v.lang}else u.lang="es-ES";u.rate=(eu?.8:1)*(carCfg.slow?.85:1);
+  let done=false;const fin=()=>{if(!done){done=true;res()}};u.onend=fin;u.onerror=fin;
+  setTimeout(fin,1500+text.length*180);speechSynthesis.speak(u)}catch(e){res()}})}
+const sleep=ms=>new Promise(r=>{car.timer=setTimeout(r,ms)});
+function phon(s){return norm(s).replace(/tx|ch/g,"c").replace(/tz|ts|z|x/g,"s").replace(/h/g,"").replace(/ll|j/g,"y").replace(/v/g,"b").replace(/(.)\1+/g,"$1").replace(/[^a-zñ]/g,"")}
+function similar(heard,target){const a=phon(heard),b=phon(target);if(!a)return false;if(a===b||a.includes(b))return true;const d=lev(a,b);return 1-d/Math.max(a.length,b.length)>=.7}
+function listen(ms){return new Promise(res=>{if(!SR){res(null);return}const out=[];let done=false;
+  const fin=()=>{if(!done){done=true;clearTimeout(t1);clearTimeout(t2);res(out)}};
+  let t1,t2;try{const r=new SR();car.rec=r;r.lang="es-ES";r.interimResults=false;r.maxAlternatives=5;r.continuous=false;
+   r.onresult=e=>{for(const x of e.results)for(const a of x)out.push(a.transcript)};r.onerror=()=>{};r.onend=fin;r.start();
+   t1=setTimeout(()=>{try{r.stop()}catch(e){}},ms);t2=setTimeout(fin,ms+2500)}catch(e){fin()}})}
+function carSetup(){const c=curLesson();
+  app.innerHTML=`<div class="top"><button class="icon" onclick="home()">←</button><h1 style="flex:1;font-size:22px">🚗 Modo coche</h1></div>
+  <div class="card"><p class="sub" style="margin:0">La app te dice una palabra en castellano, te deja unos segundos para decirla en voz alta en euskera y luego te dice la respuesta dos veces. No hace falta tocar nada.</p></div>
+  <div class="card"><h2>¿Qué repasar?</h2><div class="row"><button class="btn ${carCfg.what==="mix"?"":"ghost"}" onclick="carCfg.what='mix';carSetup()">Todo lo visto</button><button class="btn ${carCfg.what==="today"?"":"ghost"}" onclick="carCfg.what='today';carSetup()">Solo hoy</button></div>
+   <h2 style="margin-top:16px">¿Cuántas?</h2><div class="row">${[10,20,40].map(n=>`<button class="btn ${carCfg.n===n?"":"ghost"}" onclick="carCfg.n=${n};carSetup()">${n}</button>`).join("")}</div>
+   <p class="sub" style="margin:6px 0 0">20 ≈ 8 minutos · 40 ≈ 15 minutos</p>
+   <h2 style="margin-top:16px">Velocidad</h2><div class="row"><button class="btn ${carCfg.slow?"ghost":""}" onclick="carCfg.slow=false;carSetup()">Normal</button><button class="btn ${carCfg.slow?"":"ghost"}" onclick="carCfg.slow=true;carSetup()">Más despacio</button></div>
+   ${SR?`<h2 style="margin-top:16px">Micrófono</h2><div class="row"><button class="btn ${carCfg.mic?"ghost":""}" onclick="carCfg.mic=false;carSetup()">Solo escuchar</button><button class="btn ${carCfg.mic?"":"ghost"}" onclick="carCfg.mic=true;carSetup()">Que me corrija</button></div><p class="sub" style="margin:6px 0 0">Con «Que me corrija» escucha lo que dices y te dice si está bien (orientativo: el iPhone no reconoce el euskera, lo compara por cómo suena).</p>`:`<p class="sub" style="margin-top:12px">Este navegador no permite usar el micrófono: funcionará en modo «solo escuchar».</p>`}
+  </div>
+  <button class="btn" onclick="carStart()">▶︎ Empezar</button>
+  <p class="sub" style="margin-top:12px">⚠️ Dale a Empezar antes de arrancar y deja el móvil en el soporte. La pantalla se queda encendida mientras dura. ${euVoice?"":"Tu iPhone no tiene voz en euskera, así que lo lee una voz en castellano adaptada: la pronunciación es aproximada."}</p>`;
+  store.set("carcfg",carCfg);scrollTo(0,0)}
+async function carStart(){const c=curLesson();let pool;
+  if(carCfg.what==="today"){const l=lessonOf(c);pool=l.review?poolWeek(l.week):l.words.concat(l.phrases)}else pool=poolUpTo(c);
+  const n=Math.min(carCfg.n,pool.length*2);car.items=[];while(car.items.length<n)car.items.push(...pick(pool,Math.min(pool.length,n-car.items.length),c));
+  car.i=0;car.ok=0;car.tried=0;car.on=true;
+  try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>car.wake=w).catch(()=>{})}catch(e){}
+  carLoop(true)}
+function alive(t){return car.on&&t===car.run}
+async function carLoop(first){const tok=++car.run;
+  if(first){renderCar(null,"intro");await talk("Empezamos. Di la respuesta en voz alta.",false);if(!alive(tok))return}
+  while(alive(tok)&&car.i<car.items.length){const it=car.items[car.i];
+    const dir=it.ph||Math.random()<.7?"es2eu":"eu2es";
+    renderCar(it,"ask",dir);
+    if(dir==="es2eu")await talk((it.ph?"Di en euskera: "+it.es.replace(/[¿?]/g,""):"¿Cómo se dice: "+it.es.replace(/[¿?]/g,"")+"?"),false);
+    else{await talk("¿Qué significa?",false);if(!alive(tok))return;await talk(it.eu,true)}
+    if(!alive(tok))return;
+    const wait=(it.ph?6500:4500)*(carCfg.slow?1.3:1);let res=null,heard=null;
+    if(carCfg.mic&&SR&&dir==="es2eu"){renderCar(it,"listen",dir);heard=await listen(wait);if(heard&&heard.length)res=heard.some(h=>similar(h,it.eu));else if(heard)res=false}
+    else{renderCar(it,"think",dir);await sleep(wait)}
+    if(!alive(tok))return;
+    renderCar(it,"answer",dir,res,heard);
+    if(res===true)await talk(["¡Bien!","¡Muy bien!","¡Eso es!"][Math.random()*3|0],false);
+    else if(res===false)await talk(heard&&heard.length?"Casi. Escucha:":"No te he oído. Escucha:",false);
+    if(!alive(tok))return;
+    if(dir==="es2eu"){await talk(it.eu,true);await sleep(600);if(!alive(tok))return;await talk(it.eu,true)}
+    else{await talk(it.es.replace(/[¿?]/g,""),false);await sleep(300);if(!alive(tok))return;await talk(it.eu,true)}
+    if(res!==null){const s=S[it.k]||{ok:0,ko:0};res?s.ok++:s.ko++;s.last=Date.now();S[it.k]=s;store.set("stats",S);best++;store.set("totalq",best);car.tried++;if(res)car.ok++}
+    if(streak.d!==today()){streak={d:today(),n:isYesterday(streak.d)?streak.n+1:1};store.set("streak",streak)}
+    if(!alive(tok))return;await sleep(1200);car.i++}
+  if(alive(tok)){renderCar(null,"end");await talk(car.tried?`Fin del repaso. ${car.ok} de ${car.tried} bien. Ondo egina!`:"Fin del repaso. Ondo egina!",false);carStop(true)}}
+function carPause(){if(!car.on)return;car.run++;try{speechSynthesis.cancel()}catch(e){}try{car.rec&&car.rec.abort()}catch(e){}clearTimeout(car.timer);renderCar(car.items[car.i],"paused")}
+function carResume(){carLoop(false)}
+function carStop(keep){car.on=false;car.run++;try{speechSynthesis.cancel()}catch(e){}try{car.rec&&car.rec.abort()}catch(e){}clearTimeout(car.timer);try{car.wake&&car.wake.release()}catch(e){}car.wake=null;if(!keep)home()}
+function renderCar(it,st,dir,res,heard){
+  const lab={intro:"Empezamos…",ask:"🔊 Escucha",think:"🤔 Dilo en voz alta",listen:"🎙️ Te escucho…",answer:"✅ Respuesta",paused:"⏸ En pausa",end:"🏁 ¡Terminado!"}[st];
+  const prog=car.items.length?`${Math.min(car.i+1,car.items.length)}/${car.items.length}`:"";
+  let big="";if(it){const showEu=st==="answer"||dir==="eu2es";
+    big=`<div style="font-size:24px;color:var(--mut)">${esc(it.es)}</div><div class="prompt" style="font-size:40px;min-height:56px">${showEu?esc(it.eu):"…"}</div>`;
+    if(st==="answer"&&res!=null)big+=`<div class="fb ${res?"ok":"ko"}" style="font-size:17px">${res?"¡Bien!":"Casi"}${heard&&heard.length?` · he oído «${esc(heard[0])}»`:""}</div>`}
+  else if(st==="end")big=`<div class="prompt">${car.tried?car.ok+"/"+car.tried:"Ondo egina!"}</div>`;
+  app.innerHTML=`<div class="top"><button class="icon" onclick="carStop()">✕</button><span class="chip">${prog}</span></div>
+  <div class="card" style="text-align:center;padding:28px 16px;min-height:300px;display:flex;flex-direction:column;justify-content:center;gap:10px"><div class="q" style="font-size:18px">${lab}</div>${big}</div>
+  ${st==="end"?`<button class="btn" onclick="carSetup()">Otra ronda</button><button class="btn ghost" onclick="home()">Inicio</button>`:
+   st==="paused"?`<button class="btn" style="padding:28px;font-size:22px" onclick="carResume()">▶︎ Seguir</button>`:`<button class="btn ghost" style="padding:28px;font-size:22px" onclick="carPause()">⏸ Pausa</button>`}`}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&car.on)carPause()});
 
 home();
 </script>
